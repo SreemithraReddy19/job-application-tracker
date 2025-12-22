@@ -125,6 +125,30 @@ def cmd_update(args: argparse.Namespace) -> None:
     print("Application updated:")
     print(df[mask].to_string(index=False))
 
+def cmd_summary(args: argparse.Namespace) -> None:
+    df = load_applications_csv(DATA_PATH)
+
+    if df.empty:
+        print("No applications found.")
+        return
+
+    total = len(df)
+
+    print("Summary")
+    print("-" * 20)
+    print(f"Total applications: {total}")
+    print()
+
+    print("By status:")
+    status_counts = df["status"].value_counts()
+    for status, count in status_counts.items():
+        print(f"  {status}: {count}")
+    print()
+
+    print("By source:")
+    source_counts = df["source"].replace("", "Unknown").value_counts()
+    for source, count in source_counts.items():
+        print(f"  {source}: {count}")
 
 
 def main():
@@ -156,6 +180,12 @@ def main():
     update_parser.add_argument("--status")
     update_parser.add_argument("--notes")
     update_parser.set_defaults(func=cmd_update)
+
+    summary_parser = subparsers.add_parser(
+        "summary", help="Show application statistics"
+    )
+    summary_parser.set_defaults(func=cmd_summary)
+
 
 
     args = parser.parse_args()
