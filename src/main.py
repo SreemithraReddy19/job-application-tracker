@@ -72,6 +72,27 @@ def cmd_add(args: argparse.Namespace) -> None:
     print("Added application:")
     print(row)
 
+def cmd_list(args: argparse.Namespace) -> None:
+    df = load_applications_csv(DATA_PATH)
+
+    if df.empty:
+        print("No applications found.")
+        return
+
+    if args.status:
+        status = args.status.strip().lower()
+        df = df[df["status"] == status]
+
+    if args.company:
+        company = args.company.strip()
+        df = df[df["company"] == company]
+
+    if df.empty:
+        print("No applications match the given filters.")
+        return
+
+    print(df.to_string(index=False))
+
 
 def main():
     parser = argparse.ArgumentParser(description="Job Application Tracker CLI")
@@ -92,6 +113,8 @@ def main():
     list_parser = subparsers.add_parser("list", help="List job applications")
     list_parser.add_argument("--company")
     list_parser.add_argument("--status")
+    list_parser.set_defaults(func=cmd_list)
+
 
     # update (placeholder for Day 5)
     update_parser = subparsers.add_parser("update", help="Update a job application")
