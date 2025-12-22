@@ -93,6 +93,39 @@ def cmd_list(args: argparse.Namespace) -> None:
 
     print(df.to_string(index=False))
 
+def cmd_update(args: argparse.Namespace) -> None:
+    company = require_non_empty(args.company, "company")
+    role = require_non_empty(args.role, "role")
+
+    df = load_applications_csv(DATA_PATH)
+
+    mask = (df["company"] == company) & (df["role"] == role)
+    matches = df[mask]
+
+    if matches.empty:
+        print(f"No application found for company='{company}' and role='{role}'.")
+        return
+
+    if len(matches) > 1:
+        print("Error: multiple matching applications found. Refusing to update.")
+        return
+
+    if args.status:
+        status = args.status.strip().lower()
+        if status not in ALLOWED_STATUS:
+            print(f"Error: invalid status '{status}'. Allowed: {sorted(ALLOWED_STATUS)}")
+            return
+        df.loc[mask, "status"] = status
+
+    if args.notes:
+        df.loc[mask, "notes"] = args.notes.strip()
+
+    save_applications_csv(df, DATA_PATH)
+
+    print("Application updated:")
+    print(df[mask].to_string(index=False))
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Job Application Tracker CLI")
@@ -119,9 +152,11 @@ def main():
     # update (placeholder for Day 5)
     update_parser = subparsers.add_parser("update", help="Update a job application")
     update_parser.add_argument("--company", required=True)
-    update_parser.add_argument("--role")
+    update_parser.add_argument("--role", required=True)
     update_parser.add_argument("--status")
     update_parser.add_argument("--notes")
+    update_parser.set_defaults(func=cmd_update)
+
 
     args = parser.parse_args()
 
