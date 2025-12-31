@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 
 from storage import load_applications_csv, save_applications_csv
-from utils import DATA_PATH, require_non_empty, normalize_status, today_iso
+from utils import DATA_PATH, require_non_empty, normalize_status, today_iso, AppError
 
 
 def cmd_add(args: argparse.Namespace) -> None:
@@ -29,6 +29,13 @@ def cmd_add(args: argparse.Namespace) -> None:
     }
 
     df = load_applications_csv(DATA_PATH)
+    # Prevent duplicates: company + role must be unique
+    dup_mask = (df["company"] == company) & (df["role"] == role)
+    if dup_mask.any():
+        raise AppError(
+            f"Duplicate entry: company='{company}' and role='{role}' already exists. Use update instead."
+        )
+
     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     save_applications_csv(df, DATA_PATH)
 
@@ -37,6 +44,11 @@ def cmd_add(args: argparse.Namespace) -> None:
 
 
 def cmd_list(args: argparse.Namespace) -> None:
+    # Validate filters FIRST (even if dataset is empty)
+    status = None
+    if args.status:
+        status = normalize_status(args.status)
+
     df = load_applications_csv(DATA_PATH)
 
     if df.empty:
@@ -44,8 +56,7 @@ def cmd_list(args: argparse.Namespace) -> None:
         print("No applications found.")
         return
 
-    if args.status:
-        status = normalize_status(args.status)
+    if status:
         df = df[df["status"] == status]
 
     if args.company:
@@ -57,6 +68,7 @@ def cmd_list(args: argparse.Namespace) -> None:
         return
 
     print(df.to_string(index=False))
+
 
 
 def cmd_update(args: argparse.Namespace) -> None:
